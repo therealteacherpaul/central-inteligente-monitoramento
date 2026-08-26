@@ -188,3 +188,72 @@ No cenário normal, o sistema:
 `Previsão favorável → Normal → recomendação de acompanhamento → persistência → atualização do frontend → alerta bloqueado`
 
 A validação com cidades e previsões reais reforça a proposta do projeto, pois demonstra que o resultado climático não é escolhido pelo usuário e nem definido manualmente durante o teste. A classificação é consequência direta dos dados meteorológicos recebidos e das regras de negócio implementadas no backend.
+
+## Validação final do cenário Atenção
+
+Após as validações dos cenários Crítico e Normal, foi realizado um teste final do estado Atenção utilizando uma cidade com previsão meteorológica intermediária.
+
+A estratégia foi selecionar uma cidade cujas condições reais de previsão ultrapassassem os limites de Normal, mas permanecessem abaixo dos gatilhos críticos.
+
+### Cidade selecionada
+
+Foi utilizada a cidade de Kobe, no Japão.
+
+Evento cadastrado:
+
+- Nome: Teste cenário atenção Kobe
+- Tipo: Externo
+- Cidade: Kobe
+- Data: 26/08/2026
+- Horário: 16:00
+
+Os dados meteorológicos processados pelo ClimaSeguro foram aproximadamente:
+
+- Temperatura prevista: 29,5 °C
+- Sensação térmica: 35,6 °C
+- Probabilidade de chuva: 48%
+- Velocidade do vento: 10,6 km/h
+
+Esses valores ultrapassaram os limites de Atenção definidos para eventos externos, principalmente pela sensação térmica e pela probabilidade de chuva, sem atingir os limites críticos.
+
+Resultado esperado:
+
+`Atenção`
+
+Resultado obtido:
+
+`event_risk = Atenção`
+
+A recomendação gerada pelo sistema foi:
+
+`Recomenda-se reforçar medidas preventivas, acompanhar a previsão e preparar alternativas para a atividade.`
+
+Após o processamento:
+
+- o registro foi persistido no Airtable;
+- o evento foi atualizado no Supabase;
+- o frontend passou a exibir o status Atenção;
+- o filtro de alertas permitiu a execução do Gmail;
+- o responsável recebeu o alerta climático por e-mail.
+
+### Evidências do cenário Atenção
+
+- `88-attention-risk-output-success.png`
+- `89-attention-recommendation-output-success.png`
+- `90-attention-airtable-record-success.png`
+- `91-attention-supabase-patch-success.png`
+- `92-attention-gmail-module-success.png`
+- `93-attention-alert-email-success.png`
+- `94-attention-frontend-success.png`
+
+### Conclusão
+
+Com esse teste, os três estados principais do ClimaSeguro foram validados utilizando previsões reais:
+
+- Normal
+- Atenção
+- Crítico
+
+O resultado climático não é escolhido manualmente pelo usuário. Ele é consequência dos dados meteorológicos recebidos e das regras de negócio aplicadas pelo backend.
+
+Assim, o ClimaSeguro demonstrou comportamento coerente nos três níveis de risco, incluindo recomendação, persistência, atualização da interface e controle de alertas.
