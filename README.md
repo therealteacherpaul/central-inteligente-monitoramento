@@ -6,7 +6,7 @@ Projeto acadêmico desenvolvido para a disciplina de Integração de APIs da Uni
 
 O ClimaSeguro é uma aplicação voltada ao apoio à gestão de eventos institucionais, com foco na análise de riscos climáticos.
 
-A plataforma permite cadastrar eventos, consultar condições meteorológicas previstas, classificar o risco climático, gerar recomendações e emitir alertas aos responsáveis.
+A plataforma permite cadastrar eventos, consultar condições meteorológicas previstas para a data e horário informados, classificar o risco climático, gerar recomendações e emitir alertas aos responsáveis.
 
 O projeto combina autenticação, banco de dados, automações, APIs externas, APIs REST próprias e uma interface web desenvolvida com ferramentas no-code e low-code.
 
@@ -16,13 +16,15 @@ O projeto combina autenticação, banco de dados, automações, APIs externas, A
 
 Instituições de ensino realizam eventos internos e externos que podem ser impactados por chuva, calor excessivo, vento forte e outras condições climáticas.
 
-O ClimaSeguro foi criado para reduzir esse risco operacional, concentrando em um único fluxo:
+A consulta manual de diferentes fontes meteorológicas pode dificultar a tomada de decisão e aumentar o risco operacional.
+
+O ClimaSeguro foi criado para concentrar esse processo em um único fluxo:
 
 - cadastro do evento;
 - validação dos dados;
 - consulta da previsão;
 - análise de risco;
-- recomendação;
+- geração de recomendação;
 - armazenamento dos resultados;
 - atualização do banco principal;
 - registro operacional complementar;
@@ -53,6 +55,8 @@ Make
 OpenStreetMap Nominatim
    ↓
 Open-Meteo
+   ↓
+Tratamento dos dados
    ↓
 Classificação de risco
    ↓
@@ -141,6 +145,11 @@ Supabase
 - Tela Meus Eventos com dados reais
 - Tela Detalhes do Evento com dados meteorológicos reais
 - Tela Configurações simplificada e sem controles não funcionais
+- Cálculo de eventos futuros considerando data e horário
+- Suporte a timezone dinâmico na API `events-summary`
+- Detecção automática do timezone do navegador no frontend
+- Integração automática do timezone com a API
+- Validação do comportamento temporal em Japão e Brasil
 - Fluxo ponta a ponta validado pelo frontend
 
 ---
@@ -241,7 +250,7 @@ A identificação do usuário é obtida através da sessão, evitando a necessid
 
 O frontend utiliza somente credenciais apropriadas para uso client-side.
 
-O fluxo do Make utiliza credencial server-side do Supabase para realizar atualizações de backend na tabela `events`.
+O fluxo do Make utiliza uma credencial server-side do Supabase para realizar atualizações de backend na tabela `events`.
 
 Essa credencial é mantida exclusivamente no ambiente da automação e não é exposta no frontend, no GitHub ou na documentação pública.
 
@@ -251,7 +260,7 @@ Essa credencial é mantida exclusivamente no ambiente da automação e não é e
 
 ### OpenStreetMap Nominatim
 
-Utilizada para transformar o nome da cidade em coordenadas geográficas.
+Utilizada para transformar o nome da cidade informada no cadastro em coordenadas geográficas.
 
 Fluxo:
 
@@ -263,7 +272,7 @@ Nominatim
 Latitude + Longitude
 ```
 
-Os dados retornados são utilizados posteriormente na consulta meteorológica.
+As coordenadas retornadas são utilizadas posteriormente na consulta meteorológica.
 
 ### Open-Meteo
 
@@ -278,15 +287,13 @@ Entre os dados utilizados estão:
 - precipitação;
 - velocidade do vento.
 
-O processamento é realizado considerando o horário específico do evento.
+O processamento utiliza especificamente o horário cadastrado para o evento.
 
 ---
 
 ## APIs REST Próprias
 
-Além de consumir APIs externas, o ClimaSeguro também possui APIs REST próprias.
-
-As APIs foram implementadas utilizando Supabase Edge Functions.
+Além de consumir APIs externas, o ClimaSeguro possui APIs REST próprias implementadas com Supabase Edge Functions.
 
 ### Validate Event
 
@@ -296,7 +303,7 @@ Endpoint:
 POST /functions/v1/validate-event
 ```
 
-Responsável pela validação dos dados de um evento.
+Responsável pela validação dos dados de um evento antes de sua persistência.
 
 Valida:
 
@@ -324,8 +331,8 @@ Formulário Novo Evento
 validate-event
 ↓
 Dados válidos?
-├── não → exibe erros
-└── sim → INSERT em public.events
+├── Não → exibe erros
+└── Sim → INSERT em public.events
 ```
 
 Quando o evento é válido, o frontend insere o registro com:
@@ -350,7 +357,23 @@ Endpoint:
 GET /functions/v1/events-summary
 ```
 
-Responsável por gerar um resumo dos eventos pertencentes ao usuário autenticado.
+A API aceita o timezone do cliente:
+
+```http
+GET /functions/v1/events-summary?timezone=<IANA_TIMEZONE>
+```
+
+Exemplos:
+
+```http
+GET /functions/v1/events-summary?timezone=Asia/Tokyo
+```
+
+```http
+GET /functions/v1/events-summary?timezone=America/Sao_Paulo
+```
+
+A função é responsável por gerar um resumo dos eventos pertencentes ao usuário autenticado.
 
 A resposta inclui:
 
@@ -360,9 +383,10 @@ A resposta inclui:
 - eventos em atenção;
 - eventos críticos;
 - eventos pendentes;
-- próximo evento.
-
-Essa API alimenta diretamente os indicadores do Dashboard.
+- próximo evento;
+- timezone utilizado;
+- data atual considerada;
+- horário atual considerado.
 
 Contrato utilizado pelo frontend:
 
@@ -398,7 +422,14 @@ O documento apresenta:
 - testes;
 - arquitetura;
 - integração com o frontend;
+- tratamento de timezone;
 - justificativas técnicas.
+
+Os testes das APIs também estão registrados em:
+
+```text
+docs/api-tests.md
+```
 
 ---
 
@@ -552,8 +583,8 @@ Fluxo:
 weather_status
 ↓
 Normal?
-├── sim → não envia alerta
-└── não → Gmail
+├── Sim → não envia alerta
+└── Não → Gmail
 ```
 
 ---
@@ -774,29 +805,263 @@ Após o ajuste, o Dashboard passou a apresentar corretamente os dados retornados
 
 ---
 
-## Eventos Futuros e Fuso Horário
+## Eventos Futuros e Timezone Dinâmico
 
-Durante os testes foi identificado que eventos já ocorridos no mesmo dia continuavam sendo contabilizados como futuros.
+Durante os testes foi identificado que o cálculo de eventos futuros não poderia depender de um fuso horário fixo.
 
-A causa era a comparação apenas pela data.
-
-A Edge Function `events-summary` foi ajustada para considerar:
-
-```text
-data + horário
-```
-
-O projeto utiliza atualmente o fuso:
+Inicialmente, a Edge Function `events-summary` utilizava:
 
 ```text
 Asia/Tokyo
 ```
 
-Após o ajuste:
+Essa abordagem funcionava durante o desenvolvimento realizado no Japão, mas produziria resultados incorretos para usuários acessando o sistema em outros países, como o Brasil.
 
-- eventos já ocorridos no mesmo dia deixaram de ser considerados futuros;
-- a contagem de `future_events` passou a refletir o horário real;
-- `next_event` passou a apontar para o próximo evento correto.
+A solução adotada foi tornar o timezone dinâmico.
+
+A API passou a aceitar o timezone através da query string:
+
+```http
+GET /functions/v1/events-summary?timezone=Asia/Tokyo
+```
+
+ou:
+
+```http
+GET /functions/v1/events-summary?timezone=America/Sao_Paulo
+```
+
+O parâmetro utiliza identificadores IANA de timezone.
+
+Exemplos:
+
+```text
+Asia/Tokyo
+America/Sao_Paulo
+America/New_York
+Europe/London
+```
+
+A função valida o timezone recebido.
+
+Caso o valor seja inválido ou não seja informado, utiliza:
+
+```text
+UTC
+```
+
+como fallback seguro.
+
+O cálculo de eventos futuros considera:
+
+```text
+data do evento
++
+horário do evento
++
+timezone do usuário
+```
+
+A resposta da API também informa:
+
+```text
+timezone
+current_date
+current_time
+```
+
+Isso facilita testes, auditoria e diagnóstico do comportamento temporal da aplicação.
+
+---
+
+## Integração Automática de Timezone no Frontend
+
+O frontend detecta automaticamente o timezone do navegador através de:
+
+```javascript
+Intl.DateTimeFormat().resolvedOptions().timeZone
+```
+
+Exemplos:
+
+```text
+Usuário no Japão
+→ Asia/Tokyo
+
+Usuário em São Paulo
+→ America/Sao_Paulo
+```
+
+O valor detectado é enviado automaticamente para a API:
+
+```text
+/functions/v1/events-summary?timezone=<timezone-do-navegador>
+```
+
+A URL utiliza `encodeURIComponent` para codificar corretamente o valor.
+
+Caso o navegador não retorne um timezone válido, o frontend utiliza:
+
+```text
+UTC
+```
+
+como fallback.
+
+Nenhuma configuração manual de timezone é necessária para o usuário.
+
+---
+
+## Teste de Timezone na API
+
+A API `events-summary` foi testada no mesmo instante utilizando diferentes fusos horários.
+
+### Asia/Tokyo
+
+A API identificou:
+
+```text
+timezone = Asia/Tokyo
+current_date = 2026-08-26
+```
+
+Nesse contexto, os eventos cadastrados já haviam ocorrido.
+
+Resultado:
+
+```text
+future_events = 0
+next_event = null
+```
+
+### America/Sao_Paulo
+
+No mesmo instante, a API identificou:
+
+```text
+timezone = America/Sao_Paulo
+current_date = 2026-08-25
+```
+
+Nesse contexto, ainda existia um evento futuro.
+
+Resultado:
+
+```text
+future_events = 1
+next_event = Teste Frontend ClimaSeguro
+```
+
+O teste comprovou que o resultado da API muda corretamente de acordo com o timezone informado pelo cliente.
+
+Evidência:
+
+```text
+screenshots/60-events-summary-dynamic-timezone-test.png
+```
+
+---
+
+## Teste de Timezone pelo Frontend
+
+Após a integração automática do timezone no Lovable, foram realizados testes diretamente no Dashboard.
+
+### Teste no Japão
+
+Com o navegador utilizando:
+
+```text
+Asia/Tokyo
+```
+
+o Dashboard apresentou:
+
+```text
+Eventos Futuros = 00
+Próximo Evento = Nenhum evento futuro
+```
+
+Esse resultado estava correto porque os eventos cadastrados já haviam ocorrido no horário local do Japão.
+
+### Teste simulando São Paulo
+
+O Chrome DevTools foi utilizado para simular:
+
+```text
+Location = São Paulo
+Timezone ID = America/Sao_Paulo
+```
+
+Após a atualização da página, o frontend detectou automaticamente o novo timezone.
+
+O Dashboard passou a apresentar:
+
+```text
+Eventos Futuros = 01
+Próximo Evento = Teste Frontend ClimaSeguro
+```
+
+Isso confirmou que:
+
+```text
+navegador
+↓
+timezone local
+↓
+Lovable
+↓
+events-summary
+↓
+cálculo temporal correto
+↓
+Dashboard
+```
+
+funciona de forma dinâmica.
+
+Evidências:
+
+```text
+screenshots/63-lovable-dashboard-timezone-japan-success.png
+screenshots/64-lovable-dashboard-timezone-brazil-success.png
+```
+
+---
+
+## Correção do Painel Próximo Evento
+
+Durante os testes de timezone foi identificado um problema adicional no Dashboard.
+
+Quando a API retornava:
+
+```text
+future_events = 0
+next_event = null
+```
+
+o frontend utilizava incorretamente o primeiro evento da lista como fallback.
+
+Isso fazia com que um evento já ocorrido aparecesse no painel `Próximo Evento`.
+
+O fallback foi removido.
+
+O comportamento correto passou a ser:
+
+```text
+summary.next_event existe
+→ exibe próximo evento
+
+summary.next_event = null
+→ exibe "Nenhum evento futuro"
+```
+
+Essa correção garante que o painel reflita exatamente o contrato da API.
+
+Evidência da correção:
+
+```text
+screenshots/62-lovable-next-event-fallback-fix.png
+```
 
 ---
 
@@ -929,7 +1194,11 @@ Entre elas estão registros de:
 - correção de binding do card Atenção;
 - tela de detalhes;
 - tela de configurações final;
-- correção da recomendação.
+- correção da recomendação;
+- teste da API com timezone dinâmico;
+- teste do frontend no timezone do Japão;
+- correção do fallback de próximo evento;
+- teste do frontend simulando timezone do Brasil.
 
 ---
 
@@ -993,6 +1262,41 @@ Durante o teste, um evento criado diretamente pela interface foi:
 
 ---
 
+## Fluxo Temporal Validado
+
+O fluxo de timezone também foi validado de ponta a ponta:
+
+```text
+Navegador
+↓
+Intl.DateTimeFormat().resolvedOptions().timeZone
+↓
+Lovable
+↓
+timezone na query string
+↓
+events-summary
+↓
+data e horário locais
+↓
+future_events
+↓
+next_event
+↓
+Dashboard
+```
+
+Esse fluxo foi testado com:
+
+```text
+Asia/Tokyo
+America/Sao_Paulo
+```
+
+e apresentou resultados diferentes e corretos de acordo com a localização simulada do usuário.
+
+---
+
 ## Testes e Ajustes Identificados
 
 Durante os testes de integração foram encontrados e corrigidos problemas reais de integração.
@@ -1027,7 +1331,7 @@ summary.risk_summary.attention
 
 ### Eventos futuros
 
-Problema:
+Problema inicial:
 
 ```text
 evento já ocorrido no mesmo dia ainda aparecia como próximo evento
@@ -1042,7 +1346,58 @@ comparação considerava apenas a data
 Correção:
 
 ```text
-data + horário + fuso Asia/Tokyo
+data + horário
+```
+
+### Timezone fixo
+
+Problema:
+
+```text
+Asia/Tokyo estava definido diretamente na Edge Function
+```
+
+Impacto:
+
+Um professor acessando o sistema no Brasil poderia receber uma contagem incorreta de eventos futuros.
+
+Correção:
+
+```text
+timezone dinâmico recebido pela query string
++
+validação do identificador IANA
++
+fallback para UTC
+```
+
+### Timezone não integrado ao frontend
+
+Problema:
+
+A API já aceitava timezone dinâmico, mas o frontend ainda precisava enviar automaticamente o timezone do usuário.
+
+Correção:
+
+```text
+Intl.DateTimeFormat().resolvedOptions().timeZone
+↓
+encodeURIComponent
+↓
+events-summary?timezone=...
+```
+
+### Fallback incorreto no próximo evento
+
+Problema:
+
+Quando `next_event` era `null`, o frontend exibia o primeiro evento da lista.
+
+Correção:
+
+```text
+next_event = null
+→ Nenhum evento futuro
 ```
 
 ### Recomendação com aspas duplicadas
@@ -1087,9 +1442,10 @@ Esses ajustes foram mantidos no projeto porque representam melhorias de consist�
 
 ## Próximos Passos
 
-- Validar o fluxo com usuário adicional
-- Validar comportamento com evento classificado como `Normal`
-- Validar comportamento com evento classificado como `Crítico`
+- Validar o fluxo com evento classificado como `Normal`
+- Validar o comportamento do filtro de alerta para evento `Normal`
+- Validar o fluxo com evento classificado como `Crítico`
+- Validar o envio de alerta para evento `Crítico`
 - Revisar documentação final
 - Organizar evidências finais
 - Preparar roteiro de apresentação
@@ -1139,9 +1495,15 @@ Detalhes do Evento real
 +
 Alertas por e-mail
 +
+Timezone dinâmico na API
++
+Timezone automático no frontend
++
+Validação Japão/Brasil
++
 Fluxo ponta a ponta validado
 ```
 
 O ClimaSeguro já possui um fluxo funcional completo entre frontend, APIs, banco de dados, automação e serviços externos.
 
-A etapa atual é de validação final, documentação e preparação da apresentação acadêmica.
+A etapa atual é concluir os testes dos cenários climáticos restantes, revisar as evidências e preparar a documentação e apresentação acadêmica.
