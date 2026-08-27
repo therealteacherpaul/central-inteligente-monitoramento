@@ -1,284 +1,195 @@
 # ClimaSeguro
 
-Projeto acadêmico desenvolvido para a disciplina de Integração de APIs da UniFECAF, no contexto do curso de IA e Automação Digital.
+Sistema inteligente de monitoramento de risco climático para eventos educacionais.
 
-## Objetivo
-
-O ClimaSeguro é uma aplicação voltada ao apoio à gestão de eventos institucionais, com foco na análise de riscos climáticos.
-
-A plataforma permite cadastrar eventos, consultar condições meteorológicas previstas para a data e horário informados, classificar o risco climático, gerar recomendações e emitir alertas aos responsáveis.
-
-O projeto combina autenticação, banco de dados, automações, APIs externas, APIs REST próprias e uma interface web desenvolvida com ferramentas no-code e low-code.
+Projeto acadêmico desenvolvido para a UniFECAF, com foco em integração de APIs, automação digital, aplicações no-code/low-code e construção de uma solução funcional baseada em dados climáticos reais.
 
 ---
 
-## Problema
+## 1. Visão geral
 
-Instituições de ensino realizam eventos internos e externos que podem ser impactados por chuva, calor excessivo, vento forte e outras condições climáticas.
+O **ClimaSeguro** é uma aplicação web criada para auxiliar instituições educacionais na tomada de decisão sobre eventos internos e externos sujeitos a condições climáticas adversas.
 
-A consulta manual de diferentes fontes meteorológicas pode dificultar a tomada de decisão e aumentar o risco operacional.
+A solução permite cadastrar eventos contendo informações como:
 
-O ClimaSeguro foi criado para concentrar esse processo em um único fluxo:
+- nome do evento;
+- tipo de evento;
+- cidade;
+- data;
+- horário;
+- e-mail do responsável.
 
-- cadastro do evento;
-- validação dos dados;
-- consulta da previsão;
-- análise de risco;
-- geração de recomendação;
-- armazenamento dos resultados;
-- atualização do banco principal;
-- registro operacional complementar;
-- alerta ao responsável;
-- exibição dos resultados no frontend.
+A partir dessas informações, o sistema consulta serviços externos de geolocalização e previsão meteorológica, processa os dados automaticamente e classifica o evento em três níveis de risco:
 
----
+- **Normal**
+- **Atenção**
+- **Crítico**
 
-## Arquitetura Atual
-
-Fluxo principal da aplicação:
-
-```text
-Usuário
-   ↓
-Lovable
-   ↓
-Supabase Auth
-   ↓
-validate-event
-   ↓
-Supabase Database
-   ↓
-event_id
-   ↓
-Make
-   ↓
-OpenStreetMap Nominatim
-   ↓
-Open-Meteo
-   ↓
-Tratamento dos dados
-   ↓
-Classificação de risco
-   ↓
-Recomendação
-   ↓
-Airtable
-   ↓
-Supabase REST API
-   ↓
-Atualização do evento
-   ↓
-Filtro de alerta
-   ↓
-Gmail
-   ↓
-Lovable exibe dados atualizados
-```
-
-Arquitetura consolidada:
-
-```text
-Lovable
-   ↓
-Supabase
-   ├── Auth
-   ├── profiles
-   ├── events
-   └── Edge Functions
-          ↓
-        Make
-          ↓
-   Nominatim + Open-Meteo
-          ↓
-   Risco + Recomendação
-          ↓
-   Airtable + Supabase
-          ↓
-        Gmail
-```
+Além da classificação, o sistema gera uma recomendação e pode enviar um alerta por e-mail ao responsável quando o evento apresenta risco climático relevante.
 
 ---
 
-## Tecnologias
+## 2. Problema identificado
 
-- Lovable
-- Supabase Database
-- Supabase Auth
-- Supabase Edge Functions
-- Supabase REST API
-- Make
-- Airtable
-- OpenStreetMap Nominatim API
-- Open-Meteo API
-- Gmail
-- GitHub
+Instituições educacionais realizam frequentemente atividades como:
 
----
+- festivais;
+- feiras;
+- excursões;
+- atividades esportivas;
+- eventos culturais;
+- reuniões externas;
+- cerimônias;
+- apresentações;
+- eventos comunitários.
 
-## Funcionalidades Implementadas
+Essas atividades podem ser impactadas por fatores como:
 
-- Autenticação por e-mail e senha com Supabase
-- Confirmação de cadastro por e-mail
-- Login e logout
-- Rotas protegidas
-- Cadastro automático de perfil institucional
-- Row Level Security no Supabase
-- Estrutura real da tabela de eventos
-- API REST própria para validação de eventos
-- API REST própria para resumo de eventos
-- Integração das APIs próprias com o frontend
-- Webhook para recebimento dos dados do evento
-- Identificação do evento através de `event_id`
-- Geocodificação de cidade
-- Consulta de previsão climática por data e horário
-- Tratamento dos dados meteorológicos
-- Classificação de risco climático
-- Geração de recomendação
-- Persistência complementar no Airtable
-- Atualização automática do evento no Supabase após o processamento climático
-- Integração Make → Supabase via REST API
-- Sincronização do status, recomendação e dados meteorológicos com a tabela `events`
-- Controle de processamento através do campo `processing_status`
-- Envio de alertas por e-mail
-- Filtro para envio de alertas apenas quando necessário
-- Dashboard com dados reais
-- Tela Meus Eventos com dados reais
-- Tela Detalhes do Evento com dados meteorológicos reais
-- Tela Configurações simplificada e sem controles não funcionais
-- Cálculo de eventos futuros considerando data e horário
-- Suporte a timezone dinâmico na API `events-summary`
-- Detecção automática do timezone do navegador no frontend
-- Integração automática do timezone com a API
-- Validação do comportamento temporal em Japão e Brasil
-- Fluxo ponta a ponta validado pelo frontend
+- calor excessivo;
+- sensação térmica elevada;
+- chuva;
+- vento;
+- precipitação.
+
+Em muitos casos, a análise dessas informações é feita manualmente, consultando diferentes fontes e dependendo da interpretação do responsável.
+
+O ClimaSeguro foi desenvolvido para centralizar e automatizar esse processo.
 
 ---
 
-## Banco de Dados
+## 3. Objetivo
 
-### Tabela `profiles`
+O objetivo do projeto é criar uma solução capaz de:
 
-Armazena as informações básicas da instituição vinculada ao usuário autenticado.
-
-Principais campos:
-
-- `id`
-- `institution_name`
-- `created_at`
-
-O registro de perfil é criado automaticamente após o cadastro do usuário.
-
-### Tabela `events`
-
-A tabela `events` é a fonte transacional principal dos eventos da aplicação.
-
-Principais campos:
-
-- `id`
-- `user_id`
-- `name`
-- `type`
-- `city`
-- `event_date`
-- `event_time`
-- `responsible_email`
-- `country`
-- `latitude`
-- `longitude`
-- `temperature`
-- `apparent_temperature`
-- `humidity`
-- `rain_probability`
-- `precipitation`
-- `wind_speed`
-- `weather_status`
-- `recommendation`
-- `forecast_status`
-- `processing_status`
-- `weather_updated_at`
-- `created_at`
-- `updated_at`
-
-O campo `id` identifica cada evento de forma única.
-
-O campo `user_id` identifica o usuário proprietário do evento.
-
-O campo `processing_status` permite acompanhar o estado do processamento climático.
-
-Estados utilizados:
-
-```text
-pending
-processed
-error
-```
-
-Fluxo de atualização:
-
-```text
-Evento criado
-↓
-processing_status = pending
-↓
-Make processa o evento
-↓
-Supabase é atualizado
-↓
-processing_status = processed
-```
+1. receber o cadastro de um evento;
+2. localizar geograficamente a cidade informada;
+3. consultar a previsão meteorológica correspondente;
+4. identificar as condições previstas especificamente para a data e horário do evento;
+5. classificar automaticamente o risco climático;
+6. gerar uma recomendação;
+7. armazenar os resultados;
+8. apresentar essas informações em uma interface web;
+9. enviar alertas quando necessário.
 
 ---
 
-## Segurança
+## 4. Evolução do projeto
 
-O projeto utiliza Supabase Auth para autenticação dos usuários.
+A proposta inicial consistia em um monitor genérico de condições climáticas.
 
-A tabela `events` possui Row Level Security.
+Durante o desenvolvimento, o projeto foi reformulado para resolver um problema mais específico e melhor contextualizado academicamente.
 
-As políticas implementadas garantem que cada usuário autenticado possa:
+A solução passou a ser direcionada para:
 
-- visualizar somente os próprios eventos;
-- cadastrar somente eventos vinculados à própria conta;
-- atualizar somente os próprios eventos;
-- excluir somente os próprios eventos.
+> Monitoramento de risco climático aplicado a eventos educacionais.
 
-As rotas internas do frontend também exigem autenticação.
+Essa mudança resultou no conceito atual do **ClimaSeguro**.
 
-As APIs REST próprias utilizam JWT do Supabase para identificar o usuário autenticado.
+A evolução permitiu transformar uma simples consulta meteorológica em um fluxo completo de:
 
-A identificação do usuário é obtida através da sessão, evitando a necessidade de receber `user_id` diretamente por parâmetros controlados pelo cliente.
-
-O frontend utiliza somente credenciais apropriadas para uso client-side.
-
-O fluxo do Make utiliza uma credencial server-side do Supabase para realizar atualizações de backend na tabela `events`.
-
-Essa credencial é mantida exclusivamente no ambiente da automação e não é exposta no frontend, no GitHub ou na documentação pública.
+**cadastro → geolocalização → previsão → processamento → classificação → recomendação → persistência → alerta → visualização**
 
 ---
 
-## APIs Externas Utilizadas
+## 5. Arquitetura da solução
 
-### OpenStreetMap Nominatim
+A arquitetura atual pode ser representada da seguinte forma:
 
-Utilizada para transformar o nome da cidade informada no cadastro em coordenadas geográficas.
+    Usuário
+       ↓
+    Lovable
+       ↓
+    Supabase Auth
+       ↓
+    Supabase Database
+       ↓
+    Make.com Webhook
+       ↓
+    OpenStreetMap / Nominatim
+       ↓
+    Open-Meteo
+       ↓
+    Processamento das condições climáticas
+       ↓
+    Classificação do risco
+       ↓
+    Geração de recomendação
+       ↓
+    Airtable
+       ↓
+    Supabase
+       ↓
+    Gmail
+       ↓
+    Dashboard ClimaSeguro
 
-Fluxo:
+---
 
-```text
-Cidade
-↓
-Nominatim
-↓
-Latitude + Longitude
-```
+## 6. Tecnologias utilizadas
 
-As coordenadas retornadas são utilizadas posteriormente na consulta meteorológica.
+### Lovable
+
+Utilizado para o desenvolvimento da interface web da aplicação.
+
+Responsável pelas telas de:
+
+- login;
+- cadastro;
+- dashboard;
+- cadastro de evento;
+- listagem de eventos;
+- detalhes;
+- configurações;
+- arquivamento de eventos.
+
+### Supabase
+
+Utilizado como backend principal da aplicação.
+
+Responsável por:
+
+- autenticação;
+- gerenciamento de usuários;
+- banco de dados;
+- políticas RLS;
+- perfis de instituições;
+- eventos;
+- armazenamento dos resultados processados;
+- Edge Functions.
+
+### Make.com
+
+Utilizado como ferramenta central de automação e orquestração das integrações.
+
+O cenário automatizado executa:
+
+1. recebimento do evento via webhook;
+2. geocodificação da cidade;
+3. consulta meteorológica;
+4. extração da previsão no horário do evento;
+5. classificação do risco;
+6. geração da recomendação;
+7. registro no Airtable;
+8. atualização do Supabase;
+9. envio condicional de alerta por e-mail.
+
+### OpenStreetMap / Nominatim
+
+API utilizada para geocodificação.
+
+A cidade informada pelo usuário é convertida em:
+
+- latitude;
+- longitude;
+- país.
+
+Essas coordenadas são utilizadas posteriormente pela API meteorológica.
 
 ### Open-Meteo
 
-Utilizada para consultar a previsão climática correspondente à cidade, data e horário do evento.
+API utilizada para obtenção da previsão meteorológica.
 
-Entre os dados utilizados estão:
+São utilizados dados horários como:
 
 - temperatura;
 - sensação térmica;
@@ -287,25 +198,766 @@ Entre os dados utilizados estão:
 - precipitação;
 - velocidade do vento.
 
-O processamento utiliza especificamente o horário cadastrado para o evento.
+### Airtable
+
+Utilizado como camada adicional de persistência e auditoria.
+
+O Airtable mantém registros dos eventos processados com os dados retornados pelas APIs e pela automação.
+
+### Gmail
+
+Utilizado para envio automatizado de alertas climáticos.
+
+Foi criada uma conta específica para o projeto, identificada como **Clima Seguro**.
+
+Os e-mails são enviados automaticamente quando um evento é classificado como:
+
+- Atenção;
+- Crítico.
+
+Eventos classificados como Normal não geram alerta.
 
 ---
 
-## APIs REST Próprias
+## 7. Autenticação
 
-Além de consumir APIs externas, o ClimaSeguro possui APIs REST próprias implementadas com Supabase Edge Functions.
+A aplicação utiliza autenticação por e-mail e senha através do Supabase Auth.
+
+O fluxo implementado é:
+
+1. usuário cria uma conta;
+2. informa o nome da instituição;
+3. recebe um e-mail de confirmação;
+4. confirma o endereço;
+5. acessa a aplicação;
+6. visualiza apenas seus próprios dados.
+
+Também foram implementados:
+
+- logout;
+- login persistente;
+- proteção de rotas;
+- identificação da instituição conectada.
+
+---
+
+## 8. Estrutura de usuários
+
+Foi criada a tabela:
+
+    profiles
+
+Principais campos:
+
+    id
+    institution_name
+    created_at
+
+O perfil é criado automaticamente após o cadastro do usuário.
+
+Foram configuradas políticas de segurança RLS para impedir que usuários tenham acesso aos dados de outros usuários.
+
+---
+
+## 9. Estrutura de eventos
+
+A tabela principal do Supabase é:
+
+    events
+
+Entre os principais campos estão:
+
+    id
+    user_id
+    name
+    type
+    city
+    event_date
+    event_time
+    responsible_email
+    country
+    latitude
+    longitude
+    temperature
+    apparent_temperature
+    humidity
+    rain_probability
+    precipitation
+    wind_speed
+    weather_status
+    recommendation
+    forecast_status
+    processing_status
+    weather_updated_at
+    created_at
+    updated_at
+    archived
+    archived_at
+
+---
+
+## 10. Cadastro de eventos
+
+O usuário cadastra um evento informando:
+
+    Nome do evento
+    Tipo
+    Cidade
+    Data
+    Horário
+    E-mail do responsável
+
+Os tipos disponíveis são:
+
+    Interno
+    Externo
+
+Após o cadastro, o evento entra no fluxo de processamento automático.
+
+---
+
+## 11. Processamento climático
+
+Após o recebimento do evento, o Make consulta o Nominatim para localizar a cidade.
+
+Em seguida, as coordenadas são utilizadas para consultar o Open-Meteo.
+
+A previsão é solicitada em resolução horária.
+
+O sistema identifica especificamente o índice correspondente ao horário cadastrado para o evento.
+
+Exemplo:
+
+    Evento: 14:00
+    ↓
+    Busca da posição correspondente no array horário
+    ↓
+    Extração dos valores climáticos daquela hora
+
+Isso evita utilizar apenas dados médios do dia.
+
+---
+
+## 12. Variáveis climáticas analisadas
+
+O sistema considera:
+
+    Temperatura
+    Sensação térmica
+    Umidade
+    Probabilidade de chuva
+    Precipitação
+    Velocidade do vento
+
+Esses valores são armazenados em variáveis intermediárias dentro do Make.
+
+---
+
+## 13. Classificação de risco
+
+O ClimaSeguro utiliza regras condicionais para determinar o nível de risco.
+
+### Eventos externos
+
+Um evento externo pode ser classificado como **Crítico** quando condições extremas são identificadas, como:
+
+    Sensação térmica >= 40°C
+    Temperatura >= 35°C
+    Probabilidade de chuva >= 70%
+    Velocidade do vento >= 40 km/h
+
+A classificação **Atenção** utiliza limites intermediários, como:
+
+    Sensação térmica >= 30°C
+    Probabilidade de chuva >= 40%
+    Velocidade do vento >= 24 km/h
+
+Quando nenhuma condição relevante é atingida:
+
+    Normal
+
+### Eventos internos
+
+Eventos internos possuem menor exposição direta a determinadas condições meteorológicas.
+
+A classificação considera principalmente:
+
+    temperatura
+    sensação térmica
+
+---
+
+## 14. Recomendações automáticas
+
+Após a classificação do evento, o sistema gera uma recomendação.
+
+### Normal
+
+    Condições favoráveis no momento.
+    Recomenda-se manter o acompanhamento até a realização do evento.
+
+### Atenção
+
+    Recomenda-se reforçar medidas preventivas,
+    acompanhar a previsão e preparar alternativas para a atividade.
+
+### Crítico
+
+    Recomenda-se reavaliar a realização do evento,
+    considerar mudança de horário, local coberto ou adiamento.
+
+---
+
+## 15. Alertas por e-mail
+
+O envio de alertas é controlado por um filtro no Make.
+
+O Gmail somente é acionado quando:
+
+    event_risk = Atenção
+    OU
+    event_risk = Crítico
+
+O e-mail contém:
+
+- nome do evento;
+- tipo;
+- cidade;
+- data;
+- horário;
+- status climático;
+- temperatura;
+- sensação térmica;
+- probabilidade de chuva;
+- velocidade do vento;
+- recomendação.
+
+---
+
+## 16. Integração com Airtable
+
+Cada evento processado também é registrado no Airtable.
+
+Entre os campos armazenados estão:
+
+    Nome do Evento
+    Tipo
+    Cidade
+    País
+    Latitude
+    Longitude
+    Data do Evento
+    Horário do Evento
+    E-mail do Responsável
+    Temperatura Prevista
+    Sensação Térmica
+    Umidade
+    Probabilidade de chuva
+    Precipitação
+    Velocidade do vento
+    Status Climático
+    Recomendação
+    Status da Previsão
+    Última Atualização
+
+O Airtable funciona como evidência adicional da integração e como registro independente da automação.
+
+---
+
+## 17. Atualização do Supabase pelo Make
+
+Após processar o evento, o Make envia os resultados novamente para o Supabase.
+
+A atualização é realizada por requisição HTTP.
+
+O Supabase passa então a armazenar:
+
+- coordenadas;
+- dados meteorológicos;
+- status climático;
+- recomendação;
+- status do processamento.
+
+Com isso, o frontend consegue apresentar os resultados calculados pela automação.
+
+---
+
+## 18. Dashboard
+
+O Dashboard apresenta um resumo dos eventos do usuário.
+
+Indicadores exibidos:
+
+    Total de eventos
+    Eventos futuros
+    Normais
+    Atenção
+    Críticos
+    Pendentes
+
+Também são apresentados:
+
+- eventos recentes;
+- próximo evento.
+
+---
+
+## 19. Edge Function `events-summary`
+
+Foi criada uma Edge Function no Supabase para gerar o resumo utilizado pelo Dashboard.
+
+A função calcula:
+
+    total_events
+    future_events
+    risk_summary.normal
+    risk_summary.attention
+    risk_summary.critical
+    risk_summary.pending
+    next_event
+
+Também considera o timezone informado pela aplicação.
+
+Durante os testes foi identificado um problema no frontend: alguns cards procuravam os valores diretamente na raiz da resposta JSON.
+
+Exemplo incorreto:
+
+    summary.normal
+    summary.critical
+
+Entretanto, a API retornava:
+
+    summary.risk_summary.normal
+    summary.risk_summary.critical
+
+A correção foi realizada no frontend.
+
+Após o ajuste, os contadores passaram a refletir corretamente os dados retornados pela Edge Function.
+
+---
+
+## 20. Timezone dinâmico
+
+Durante os testes foi identificado que o cálculo de eventos futuros não poderia depender de um fuso horário fixo.
+
+A Edge Function `events-summary` foi ajustada para receber o timezone do cliente através da query string.
+
+Exemplos:
+
+    /functions/v1/events-summary?timezone=Asia/Tokyo
+
+    /functions/v1/events-summary?timezone=America/Sao_Paulo
+
+O frontend detecta automaticamente o timezone do navegador através de:
+
+    Intl.DateTimeFormat().resolvedOptions().timeZone
+
+Caso um timezone válido não esteja disponível, o sistema utiliza UTC como fallback.
+
+Foram realizados testes simulando:
+
+- Japão;
+- Brasil.
+
+O Dashboard apresentou resultados diferentes e corretos conforme o contexto temporal do usuário.
+
+---
+
+## 21. Arquivamento lógico de eventos
+
+Durante a evolução da interface foi identificada a necessidade de evitar que eventos antigos permanecessem indefinidamente na lista principal.
+
+Em vez de excluir registros históricos, foi adotado um modelo de **arquivamento lógico**.
+
+Foram adicionados à tabela `events`:
+
+    archived boolean default false
+    archived_at timestamptz
+
+Essa decisão permite manter os registros no banco de dados e, ao mesmo tempo, removê-los da área principal da aplicação.
+
+---
+
+## 22. Decisão de arquivamento
+
+A adoção de arquivamento lógico foi uma decisão intencional de arquitetura e experiência do usuário.
+
+A exclusão definitiva passou a ser utilizada apenas para registros redundantes gerados durante desenvolvimento e testes.
+
+Eventos operacionais podem ser arquivados sem perda histórica.
+
+Essa abordagem permite:
+
+- preservar histórico;
+- evitar poluição visual da lista principal;
+- manter rastreabilidade;
+- restaurar registros quando necessário;
+- evitar exclusão acidental de dados relevantes.
+
+---
+
+## 23. Interface de arquivamento
+
+A tela **Meus Eventos** passou a possuir duas visualizações:
+
+    Ativos
+    Arquivados
+
+Na aba Ativos, eventos passados podem utilizar a ação:
+
+    Arquivar
+
+Na aba Arquivados, cada evento possui:
+
+    Restaurar
+
+Eventos futuros não devem oferecer a ação de arquivamento enquanto ainda não tiverem ocorrido.
+
+---
+
+## 24. Comportamento do arquivamento
+
+Ao arquivar um evento:
+
+    archived = true
+    archived_at = timestamp atual
+
+O evento:
+
+- deixa de aparecer na lista de ativos;
+- passa para a aba Arquivados;
+- deixa de ser considerado nos indicadores do Dashboard.
+
+---
+
+## 25. Restauração de eventos
+
+Ao restaurar:
+
+    archived = false
+    archived_at = null
+
+O evento retorna à lista de ativos.
+
+O Dashboard também volta a considerar o registro nos seus cálculos.
+
+---
+
+## 26. Ajuste da Edge Function para arquivamento
+
+A Edge Function `events-summary` foi atualizada para trabalhar apenas com eventos ativos.
+
+Foi aplicado o filtro:
+
+    .eq("archived", false)
+
+Dessa forma, os registros arquivados não afetam:
+
+    total_events
+    future_events
+    risk_summary.normal
+    risk_summary.attention
+    risk_summary.critical
+    risk_summary.pending
+    next_event
+
+A lógica existente de timezone foi preservada.
+
+---
+
+## 27. Validação do arquivamento
+
+O fluxo foi testado em diferentes etapas.
+
+### Teste de arquivamento
+
+Um evento foi arquivado pela interface.
+
+Foi confirmado que:
+
+- o registro desapareceu de Ativos;
+- apareceu em Arquivados;
+- o Dashboard deixou de contabilizá-lo;
+- o evento também deixou de aparecer na lista de eventos recentes.
+
+### Teste de restauração
+
+Um evento previamente arquivado foi restaurado.
+
+Após a restauração:
+
+- o registro voltou à lista de ativos;
+- voltou a aparecer no Dashboard;
+- os indicadores foram recalculados corretamente.
+
+---
+
+## 28. Validação do Dashboard após arquivamento
+
+Durante os testes finais de arquivamento, havia três eventos ativos:
+
+- 1 Normal;
+- 1 Atenção;
+- 1 Crítico.
+
+O Dashboard apresentava:
+
+    Total de eventos: 03
+    Normais: 01
+    Atenção: 01
+    Críticos: 01
+    Pendentes: 00
+
+Após arquivar o evento Normal:
+
+    Total de eventos: 02
+    Normais: 00
+    Atenção: 01
+    Críticos: 01
+    Pendentes: 00
+
+O evento arquivado também deixou de aparecer na lista de eventos recentes.
+
+Esse teste confirmou que os cálculos da Edge Function respeitam corretamente o estado `archived`.
+
+---
+
+## 29. Validação da restauração no Dashboard
+
+Após restaurar um evento previamente arquivado, o Dashboard voltou a considerar o registro.
+
+O total voltou a aumentar e o evento restaurado reapareceu na lista de eventos recentes.
+
+Isso confirmou o ciclo completo:
+
+    Ativo
+    ↓
+    Arquivado
+    ↓
+    Removido dos indicadores
+    ↓
+    Restaurado
+    ↓
+    Reintegrado aos indicadores
+
+---
+
+## 30. Estratégia de testes climáticos
+
+Para validar o sistema de classificação, não era suficiente testar apenas uma cidade.
+
+Foi necessário encontrar localidades cujas condições meteorológicas permitissem reproduzir diferentes cenários.
+
+Foram analisadas previsões meteorológicas para identificar cidades que apresentassem condições adequadas aos testes.
+
+Essa etapa foi importante porque os testes utilizam dados climáticos reais e variáveis.
+
+A pesquisa externa foi utilizada apenas para selecionar candidatos adequados aos casos de teste.
+
+A classificação final continuou sendo produzida exclusivamente pelo fluxo real do ClimaSeguro e pelos dados recebidos da Open-Meteo.
+
+---
+
+## 31. Cenário Crítico
+
+Foi utilizada:
+
+    Fukuoka, Japão
+
+O cenário apresentou condições suficientes para atingir os critérios de risco crítico.
+
+Entre os dados observados durante o teste:
+
+    Temperatura: aproximadamente 31°C
+    Sensação térmica: aproximadamente 37°C
+    Probabilidade de chuva: aproximadamente 79%
+
+A probabilidade de chuva ultrapassou o limite definido para risco crítico.
+
+Resultado:
+
+    Crítico
+
+Também foram validados:
+
+- recomendação crítica;
+- registro no Airtable;
+- atualização do Supabase;
+- atualização do frontend;
+- envio do alerta por Gmail.
+
+---
+
+## 32. Cenário Normal
+
+Para validar o cenário sem risco relevante foi utilizada:
+
+    Kushiro, Japão
+
+As condições retornadas permaneceram abaixo dos limites definidos para Atenção.
+
+Resultado:
+
+    Normal
+
+Também foi validado que eventos normais:
+
+- são persistidos;
+- aparecem corretamente no frontend;
+- não acionam alerta climático por e-mail.
+
+O Filter Inspector do Make confirmou que as condições Atenção e Crítico foram avaliadas como falsas.
+
+---
+
+## 33. Cenário Atenção
+
+Para reproduzir o cenário intermediário foi utilizada:
+
+    Kobe, Japão
+
+Durante o teste foram observados aproximadamente:
+
+    Temperatura: 29,5°C
+    Sensação térmica: 35,6°C
+    Probabilidade de chuva: 48%
+    Velocidade do vento: 10,6 km/h
+
+Resultado:
+
+    Atenção
+
+Foi confirmado:
+
+- status Atenção;
+- recomendação preventiva;
+- registro no Airtable;
+- atualização no Supabase;
+- exibição no frontend;
+- envio de alerta por e-mail.
+
+---
+
+## 34. Matriz de testes finais
+
+| Cenário | Cidade | Resultado esperado | Resultado obtido |
+|---|---|---|---|
+| Normal | Kushiro | Normal | Normal |
+| Atenção | Kobe | Atenção | Atenção |
+| Crítico | Fukuoka | Crítico | Crítico |
+
+Os três níveis principais da lógica de classificação foram validados com sucesso utilizando previsões reais.
+
+---
+
+## 35. Correções realizadas durante o desenvolvimento
+
+O projeto passou por diversas validações e correções.
+
+### Extração do horário
+
+Foi necessário adaptar o índice das previsões horárias para a estrutura de arrays utilizada pelo Make.
+
+### Fórmula de risco
+
+A lógica inicial apresentou dificuldades ao trabalhar diretamente com arrays da resposta HTTP.
+
+A solução foi criar variáveis intermediárias para os valores específicos do evento.
+
+Também foi necessário substituir uma lógica de condições mal agrupadas por `if()` aninhados, garantindo que qualquer condição crítica pudesse produzir corretamente o estado Crítico.
+
+### Comparações textuais
+
+Foram identificados problemas relacionados a valores textuais e espaços.
+
+Foi utilizada normalização com:
+
+    trim()
+
+### Constraint do Supabase
+
+A tabela `events` possuía uma restrição de valores permitidos para `weather_status`.
+
+A constraint foi atualizada para aceitar:
+
+    Normal
+    Atenção
+    Crítico
+
+### Recomendações
+
+A comparação utilizada na recomendação também foi ajustada para garantir correspondência consistente com o valor de `event_risk`.
+
+### Filtro de e-mail
+
+O filtro foi configurado para aceitar duas condições em lógica OR:
+
+    Atenção
+    OU
+    Crítico
+
+### Dashboard
+
+Foi identificado que alguns cards utilizavam caminhos JSON incorretos.
+
+Após a correção, os dados passaram a ser lidos de:
+
+    risk_summary.normal
+    risk_summary.attention
+    risk_summary.critical
+    risk_summary.pending
+
+Também foi adicionada invalidação/refetch do resumo para reduzir inconsistências de cache.
+
+### Próximo evento
+
+Foi identificado que o frontend utilizava um evento da lista como fallback mesmo quando `next_event` era `null`.
+
+Esse fallback foi removido.
+
+Quando não há eventos futuros, o Dashboard passa a exibir:
+
+    Nenhum evento futuro
+
+### Timezone
+
+A primeira versão utilizava um timezone fixo.
+
+A solução foi permitir timezone dinâmico informado pelo navegador.
+
+### Arquivamento
+
+A Edge Function foi atualizada para ignorar eventos com:
+
+    archived = true
+
+### Revisão de código sugerido por IA
+
+Durante a implementação do filtro de arquivamento, foi sugerida uma nova versão completa da Edge Function que alterava também a lógica temporal.
+
+Antes do deploy, o código foi revisado e foi identificado risco de regressão na lógica de timezone.
+
+A solução escolhida foi preservar a função já validada e adicionar somente o filtro:
+
+    .eq("archived", false)
+
+Essa decisão reduziu o risco de regressão e preservou o comportamento previamente testado no Japão e no Brasil.
+
+---
+
+## 36. APIs REST próprias
+
+Além de consumir APIs externas, o ClimaSeguro possui duas APIs REST próprias implementadas através de Supabase Edge Functions.
 
 ### Validate Event
 
 Endpoint:
 
-```http
-POST /functions/v1/validate-event
-```
+    POST /functions/v1/validate-event
 
-Responsável pela validação dos dados de um evento antes de sua persistência.
+Responsável por centralizar a validação dos dados enviados pelo formulário de Novo Evento.
 
-Valida:
+A API valida:
 
 - nome;
 - tipo;
@@ -314,1196 +966,313 @@ Valida:
 - horário;
 - e-mail do responsável.
 
-O campo `type` aceita somente:
-
-```text
-Interno
-Externo
-```
-
-A API exige usuário autenticado.
-
-Fluxo implementado:
-
-```text
-Formulário Novo Evento
-↓
-validate-event
-↓
-Dados válidos?
-├── Não → exibe erros
-└── Sim → INSERT em public.events
-```
-
-Quando o evento é válido, o frontend insere o registro com:
-
-```text
-processing_status = pending
-```
-
-e recebe o UUID real do evento.
-
-Esse UUID é enviado ao Make como:
-
-```text
-event_id
-```
+Ela é utilizada diretamente pelo frontend antes da criação do evento.
 
 ### Events Summary
 
 Endpoint:
 
-```http
-GET /functions/v1/events-summary
-```
+    GET /functions/v1/events-summary?timezone=<IANA_TIMEZONE>
 
-A API aceita o timezone do cliente:
+Responsável por consolidar os dados utilizados pelo Dashboard.
 
-```http
-GET /functions/v1/events-summary?timezone=<IANA_TIMEZONE>
-```
+Retorna informações como:
 
-Exemplos:
+    total_events
+    future_events
+    risk_summary
+    next_event
+    timezone
+    current_date
+    current_time
 
-```http
-GET /functions/v1/events-summary?timezone=Asia/Tokyo
-```
+A função:
 
-```http
-GET /functions/v1/events-summary?timezone=America/Sao_Paulo
-```
-
-A função é responsável por gerar um resumo dos eventos pertencentes ao usuário autenticado.
-
-A resposta inclui:
-
-- total de eventos;
-- eventos futuros;
-- eventos normais;
-- eventos em atenção;
-- eventos críticos;
-- eventos pendentes;
-- próximo evento;
-- timezone utilizado;
-- data atual considerada;
-- horário atual considerado.
-
-Contrato utilizado pelo frontend:
-
-```text
-summary.total_events
-summary.future_events
-summary.risk_summary.normal
-summary.risk_summary.attention
-summary.risk_summary.critical
-summary.risk_summary.pending
-summary.next_event
-```
+- utiliza autenticação do usuário;
+- respeita RLS;
+- considera timezone dinâmico;
+- ignora eventos arquivados.
 
 ---
 
-## Documentação das APIs
+## 37. Uso real das APIs próprias
 
-A documentação técnica completa das APIs REST próprias está disponível em:
+As APIs próprias não foram criadas apenas para demonstração isolada.
 
-```text
-docs/rest-apis.md
-```
+Elas fazem parte do fluxo real da aplicação.
 
-O documento apresenta:
+A `validate-event` é utilizada no cadastro de novos eventos.
 
-- endpoints;
-- métodos HTTP;
-- autenticação;
-- requests;
-- responses;
-- códigos HTTP;
-- regras de negócio;
-- testes;
-- arquitetura;
-- integração com o frontend;
-- tratamento de timezone;
-- justificativas técnicas.
+A `events-summary` alimenta o Dashboard.
 
-Os testes das APIs também estão registrados em:
+Isso permite demonstrar no projeto:
 
-```text
-docs/api-tests.md
-```
+    consumo de APIs externas
+    +
+    criação de APIs REST próprias
+    +
+    uso real dessas APIs pelo frontend
 
 ---
 
-## Processamento Climático
+## 38. Papel do Supabase e do Airtable
 
-O webhook do Make recebe os seguintes dados:
-
-```text
-event_id
-nome_evento
-tipo
-cidade
-data_evento
-horario_evento
-email_responsavel
-```
-
-O campo `event_id` permite que o Make atualize exatamente o mesmo registro criado anteriormente no Supabase.
-
-Fluxo:
-
-```text
-event_id
-↓
-Make
-↓
-Nominatim
-↓
-Open-Meteo
-↓
-Variáveis climáticas
-↓
-Risco
-↓
-Recomendação
-↓
-Airtable
-↓
-PATCH no Supabase
-```
-
----
-
-## Classificação de Risco Climático
-
-O ClimaSeguro classifica os eventos em três níveis:
-
-```text
-Normal
-Atenção
-Crítico
-```
-
-A análise utiliza informações como:
-
-- temperatura;
-- sensação térmica;
-- probabilidade de chuva;
-- precipitação;
-- velocidade do vento;
-- tipo do evento.
-
-Eventos classificados como `Externo` possuem maior sensibilidade às condições climáticas.
-
-A lógica de classificação é executada no Make.
-
----
-
-## Recomendações
-
-Após a classificação, o sistema gera uma recomendação correspondente ao risco identificado.
-
-### Normal
-
-Condições favoráveis no momento. Recomenda-se manter o acompanhamento até a realização do evento.
-
-### Atenção
-
-Recomenda-se reforçar medidas preventivas, acompanhar a previsão e preparar alternativas para a atividade.
-
-### Crítico
-
-Recomenda-se reavaliar a realização do evento, considerar mudança de horário, local coberto ou adiamento.
-
----
-
-## Atualização do Supabase pelo Make
-
-Após o processamento climático, o Make utiliza a Supabase REST API para atualizar o registro correspondente na tabela `events`.
-
-A atualização é realizada utilizando o `event_id`.
-
-Exemplo conceitual:
-
-```text
-PATCH /rest/v1/events?id=eq.<event_id>
-```
-
-Entre os campos atualizados estão:
-
-- `country`
-- `latitude`
-- `longitude`
-- `temperature`
-- `apparent_temperature`
-- `humidity`
-- `rain_probability`
-- `precipitation`
-- `wind_speed`
-- `weather_status`
-- `recommendation`
-- `forecast_status`
-- `processing_status`
-- `weather_updated_at`
-
-Após o processamento bem-sucedido:
-
-```text
-processing_status = processed
-```
-
-Essa etapa permite que os resultados calculados pela automação sejam disponibilizados novamente para a aplicação.
-
----
-
-## Alertas
-
-Quando o risco climático exige atenção, o Make envia uma notificação por e-mail ao responsável informado no cadastro do evento.
-
-O alerta apresenta:
-
-- nome do evento;
-- tipo;
-- cidade;
-- data;
-- horário;
-- classificação;
-- temperatura;
-- sensação térmica;
-- probabilidade de chuva;
-- velocidade do vento;
-- recomendação.
-
-Os e-mails são enviados utilizando uma conta exclusiva do projeto ClimaSeguro.
-
-Existe um filtro no fluxo para impedir o envio desnecessário quando o evento está classificado como `Normal`.
-
-Fluxo:
-
-```text
-weather_status
-↓
-Normal?
-├── Sim → não envia alerta
-└── Não → Gmail
-```
-
----
-
-## Supabase e Airtable
-
-O uso conjunto de Supabase e Airtable é uma decisão arquitetural intencional do projeto.
+O uso conjunto de Supabase e Airtable é intencional.
 
 ### Supabase
 
-O Supabase atua como fonte de verdade transacional do ClimaSeguro.
+Atua como fonte transacional principal da aplicação.
 
-Responsabilidades:
+Responsável por:
 
-- autenticação;
 - usuários;
+- autenticação;
 - perfis;
 - eventos;
 - segurança;
-- Row Level Security;
+- RLS;
 - APIs próprias;
 - dados utilizados pelo frontend;
-- armazenamento dos resultados processados.
+- arquivamento.
 
 ### Airtable
 
-O Airtable é mantido como uma camada complementar de integração e auditoria operacional.
+Atua como camada complementar de integração e auditoria operacional.
 
-Responsabilidades:
+Responsável por:
 
-- espelhar dados processados;
-- facilitar a inspeção dos resultados;
-- acompanhar visualmente as automações;
-- permitir conferência operacional;
-- manter uma camada no-code de integração.
+- espelhar resultados processados;
+- facilitar inspeção visual;
+- acompanhar automações;
+- preservar uma camada no-code operacional.
 
 Dessa forma, Supabase e Airtable não representam duplicação acidental.
 
-O Supabase atende às necessidades transacionais, de autenticação e segurança da aplicação.
-
-O Airtable oferece visibilidade operacional, facilidade de inspeção e integração no-code.
-
-A separação também preserva a evolução do projeto, que inicialmente utilizava o Airtable como base principal antes da introdução de autenticação, usuários e isolamento de dados.
+Cada ferramenta possui responsabilidade diferente dentro da arquitetura.
 
 ---
 
-## Interface
+## 39. Segurança
 
-O frontend foi desenvolvido no Lovable.
+O sistema utiliza Row Level Security no Supabase.
 
-As principais telas são:
+As políticas garantem que cada usuário tenha acesso apenas aos próprios registros.
 
-- Login
-- Cadastro
-- Dashboard
-- Novo Evento
-- Meus Eventos
-- Detalhes do Evento
-- Configurações
+A autenticação é utilizada tanto no frontend quanto nas operações de consulta ao banco.
 
-A aplicação possui autenticação real integrada ao Supabase.
+Chaves administrativas não são expostas diretamente no navegador.
 
-Os dados mockados principais foram substituídos por dados reais.
+Credenciais server-side utilizadas pelo Make são mantidas fora do frontend e do repositório público.
 
 ---
 
-## Novo Evento
+## 40. Decisões de projeto
 
-A tela Novo Evento utiliza dados reais.
-
-Fluxo implementado:
-
-```text
-Usuário preenche formulário
-↓
-validate-event
-↓
-Dados válidos
-↓
-INSERT em public.events
-↓
-processing_status = pending
-↓
-UUID real retornado
-↓
-event_id enviado ao Make
-↓
-Usuário é redirecionado
-```
-
-Enquanto o Make processa o evento, a interface exibe:
-
-```text
-Processando previsão
-```
-
-Após a atualização do Supabase, o evento passa a exibir o status climático real.
-
----
-
-## Meus Eventos
-
-A tela Meus Eventos deixou de utilizar mocks.
-
-Os eventos são carregados diretamente de:
-
-```text
-public.events
-```
-
-A consulta respeita as policies RLS do Supabase.
-
-A interface exibe:
-
-- nome;
-- cidade;
-- data;
-- horário;
-- tipo;
-- status climático;
-- status de processamento.
-
-Estados apresentados:
-
-```text
-pending
-→ Processando previsão
-
-processed
-→ Exibe weather_status
-
-error
-→ Erro no processamento
-```
-
----
-
-## Detalhes do Evento
-
-A tela Detalhes do Evento utiliza dados reais armazenados no Supabase.
-
-São exibidos:
-
-- nome do evento;
-- cidade;
-- data;
-- horário;
-- tipo;
-- e-mail do responsável;
-- status de processamento;
-- status climático;
-- temperatura;
-- sensação térmica;
-- umidade;
-- probabilidade de chuva;
-- precipitação;
-- velocidade do vento;
-- recomendação.
-
-Campos utilizados:
-
-```text
-temperature
-apparent_temperature
-humidity
-rain_probability
-precipitation
-wind_speed
-weather_status
-recommendation
-```
-
-Durante a validação da interface foi identificado que a recomendação estava sendo exibida com aspas extras.
-
-A causa era a combinação de aspas já existentes no texto com aspas adicionadas pelo JSX.
-
-O frontend foi corrigido para exibir somente o conteúdo de `recommendation`.
-
----
-
-## Dashboard
-
-O Dashboard utiliza dados reais fornecidos pela API:
-
-```http
-GET /functions/v1/events-summary
-```
-
-Os cards exibem:
-
-- total de eventos;
-- eventos futuros;
-- normais;
-- atenção;
-- críticos;
-- pendentes.
-
-O painel também apresenta o próximo evento.
-
-Durante os testes foi identificado um erro de binding no card `Atenção`.
-
-O frontend buscava:
-
-```text
-summary.attention
-summary.atencao
-```
-
-mas o contrato correto da API é:
-
-```text
-summary.risk_summary.attention
-```
-
-A correção foi realizada no frontend.
-
-Após o ajuste, o Dashboard passou a apresentar corretamente os dados retornados pela API.
-
----
-
-## Eventos Futuros e Timezone Dinâmico
-
-Durante os testes foi identificado que o cálculo de eventos futuros não poderia depender de um fuso horário fixo.
-
-Inicialmente, a Edge Function `events-summary` utilizava:
-
-```text
-Asia/Tokyo
-```
-
-Essa abordagem funcionava durante o desenvolvimento realizado no Japão, mas produziria resultados incorretos para usuários acessando o sistema em outros países, como o Brasil.
-
-A solução adotada foi tornar o timezone dinâmico.
-
-A API passou a aceitar o timezone através da query string:
-
-```http
-GET /functions/v1/events-summary?timezone=Asia/Tokyo
-```
-
-ou:
-
-```http
-GET /functions/v1/events-summary?timezone=America/Sao_Paulo
-```
-
-O parâmetro utiliza identificadores IANA de timezone.
-
-Exemplos:
-
-```text
-Asia/Tokyo
-America/Sao_Paulo
-America/New_York
-Europe/London
-```
-
-A função valida o timezone recebido.
-
-Caso o valor seja inválido ou não seja informado, utiliza:
-
-```text
-UTC
-```
-
-como fallback seguro.
-
-O cálculo de eventos futuros considera:
-
-```text
-data do evento
-+
-horário do evento
-+
-timezone do usuário
-```
-
-A resposta da API também informa:
-
-```text
-timezone
-current_date
-current_time
-```
-
-Isso facilita testes, auditoria e diagnóstico do comportamento temporal da aplicação.
-
----
-
-## Integração Automática de Timezone no Frontend
-
-O frontend detecta automaticamente o timezone do navegador através de:
-
-```javascript
-Intl.DateTimeFormat().resolvedOptions().timeZone
-```
-
-Exemplos:
-
-```text
-Usuário no Japão
-→ Asia/Tokyo
-
-Usuário em São Paulo
-→ America/Sao_Paulo
-```
-
-O valor detectado é enviado automaticamente para a API:
-
-```text
-/functions/v1/events-summary?timezone=<timezone-do-navegador>
-```
-
-A URL utiliza `encodeURIComponent` para codificar corretamente o valor.
-
-Caso o navegador não retorne um timezone válido, o frontend utiliza:
-
-```text
-UTC
-```
-
-como fallback.
-
-Nenhuma configuração manual de timezone é necessária para o usuário.
-
----
-
-## Teste de Timezone na API
-
-A API `events-summary` foi testada no mesmo instante utilizando diferentes fusos horários.
-
-### Asia/Tokyo
-
-A API identificou:
-
-```text
-timezone = Asia/Tokyo
-current_date = 2026-08-26
-```
-
-Nesse contexto, os eventos cadastrados já haviam ocorrido.
-
-Resultado:
-
-```text
-future_events = 0
-next_event = null
-```
-
-### America/Sao_Paulo
-
-No mesmo instante, a API identificou:
-
-```text
-timezone = America/Sao_Paulo
-current_date = 2026-08-25
-```
-
-Nesse contexto, ainda existia um evento futuro.
-
-Resultado:
-
-```text
-future_events = 1
-next_event = Teste Frontend ClimaSeguro
-```
-
-O teste comprovou que o resultado da API muda corretamente de acordo com o timezone informado pelo cliente.
-
-Evidência:
-
-```text
-screenshots/60-events-summary-dynamic-timezone-test.png
-```
-
----
-
-## Teste de Timezone pelo Frontend
-
-Após a integração automática do timezone no Lovable, foram realizados testes diretamente no Dashboard.
-
-### Teste no Japão
-
-Com o navegador utilizando:
-
-```text
-Asia/Tokyo
-```
-
-o Dashboard apresentou:
-
-```text
-Eventos Futuros = 00
-Próximo Evento = Nenhum evento futuro
-```
-
-Esse resultado estava correto porque os eventos cadastrados já haviam ocorrido no horário local do Japão.
-
-### Teste simulando São Paulo
-
-O Chrome DevTools foi utilizado para simular:
-
-```text
-Location = São Paulo
-Timezone ID = America/Sao_Paulo
-```
-
-Após a atualização da página, o frontend detectou automaticamente o novo timezone.
-
-O Dashboard passou a apresentar:
-
-```text
-Eventos Futuros = 01
-Próximo Evento = Teste Frontend ClimaSeguro
-```
-
-Isso confirmou que:
-
-```text
-navegador
-↓
-timezone local
-↓
-Lovable
-↓
-events-summary
-↓
-cálculo temporal correto
-↓
-Dashboard
-```
-
-funciona de forma dinâmica.
-
-Evidências:
-
-```text
-screenshots/63-lovable-dashboard-timezone-japan-success.png
-screenshots/64-lovable-dashboard-timezone-brazil-success.png
-```
-
----
-
-## Correção do Painel Próximo Evento
-
-Durante os testes de timezone foi identificado um problema adicional no Dashboard.
-
-Quando a API retornava:
-
-```text
-future_events = 0
-next_event = null
-```
-
-o frontend utilizava incorretamente o primeiro evento da lista como fallback.
-
-Isso fazia com que um evento já ocorrido aparecesse no painel `Próximo Evento`.
-
-O fallback foi removido.
-
-O comportamento correto passou a ser:
-
-```text
-summary.next_event existe
-→ exibe próximo evento
-
-summary.next_event = null
-→ exibe "Nenhum evento futuro"
-```
-
-Essa correção garante que o painel reflita exatamente o contrato da API.
-
-Evidência da correção:
-
-```text
-screenshots/62-lovable-next-event-fallback-fix.png
-```
-
----
-
-## Configurações da Aplicação
-
-A tela de Configurações inicialmente possuía controles para limites climáticos de chuva e vento.
-
-Esses campos foram removidos porque os limites climáticos são atualmente definidos pelo backend.
-
-A interface informa:
-
-```text
-Os limites climáticos são definidos pelo backend e não são editáveis aqui.
-```
-
-São exibidos:
-
-- nome da instituição;
-- e-mail para notificações.
-
-Os campos são apresentados apenas como informação.
-
-O botão `Salvar preferências` foi removido porque não possuía persistência real.
-
-Essa decisão evita apresentar controles que aparentem possuir funcionalidade sem produzir efeito no sistema.
-
----
-
-## Decisão de Escopo
-
-O projeto inicialmente foi desenvolvido como uma central genérica de consulta climática.
-
-Durante a evolução da solução, o escopo foi refinado para atender a um problema mais específico e relevante: o monitoramento de riscos climáticos em eventos institucionais.
-
-Essa evolução deu origem ao ClimaSeguro.
-
-A mudança permitiu adicionar:
-
-- contexto de negócio;
-- cadastro de eventos;
-- autenticação;
-- usuários institucionais;
-- classificação de risco;
-- recomendações;
-- alertas;
-- banco de dados;
-- APIs próprias;
-- integração entre frontend e automação.
-
-A evolução foi realizada de forma incremental, preservando as integrações já desenvolvidas e ampliando gradualmente a arquitetura.
-
----
-
-## Estratégia de Integração
-
-O projeto utiliza uma arquitetura híbrida no-code e low-code.
-
-Cada ferramenta possui uma responsabilidade específica:
-
-```text
-Lovable
-→ interface
-
-Supabase
-→ autenticação, banco, segurança e APIs
-
-Make
-→ orquestração e automação
-
-Nominatim
-→ geocodificação
-
-Open-Meteo
-→ previsão meteorológica
-
-Airtable
-→ auditoria operacional no-code
-
-Gmail
-→ alertas
-```
-
-Essa divisão permite manter:
+O projeto priorizou:
 
 - simplicidade;
 - baixo custo;
-- velocidade de desenvolvimento;
-- clareza arquitetural;
-- possibilidade de demonstração acadêmica;
-- integração entre múltiplos serviços.
+- ferramentas gratuitas sempre que possível;
+- rápida implementação;
+- modularidade;
+- integração entre serviços;
+- facilidade de demonstração;
+- clareza acadêmica;
+- preservação de histórico;
+- redução de complexidade desnecessária.
+
+Foi adotada uma arquitetura low-code/no-code sempre que possível.
+
+Código customizado foi utilizado apenas em pontos específicos, como:
+
+- Edge Functions;
+- lógica de interface;
+- integração do frontend com o Supabase.
 
 ---
 
-## Evidências
+## 41. Evidências
 
-As evidências técnicas do projeto estão organizadas na pasta:
-
-```text
-screenshots/
-```
-
-Entre elas estão registros de:
+Durante o desenvolvimento foram produzidos screenshots demonstrando:
 
 - webhook;
-- geocodificação;
-- consulta à Open-Meteo;
-- processamento das variáveis climáticas;
+- Nominatim;
+- Open-Meteo;
+- extração das variáveis climáticas;
 - classificação de risco;
-- recomendação;
-- persistência no Airtable;
-- envio de alerta por e-mail;
-- telas do Lovable;
+- recomendações;
+- Airtable;
+- Gmail;
 - autenticação;
+- Supabase;
+- frontend;
+- Dashboard;
+- testes Normal, Atenção e Crítico;
+- timezone dinâmico;
+- arquivamento;
+- restauração;
+- Edge Functions;
+- diagnóstico de valores;
+- correções de binding;
+- correções realizadas durante o desenvolvimento.
+
+As imagens estão organizadas na pasta de evidências do projeto.
+
+Entre as evidências mais recentes estão:
+
+    95-supabase-events-archive-columns-created.png
+    96-supabase-events-archive-columns-table-success.png
+    97-supabase-redundant-test-records-selected.png
+    98-supabase-redundant-test-records-deleted.png
+    99-supabase-events-clean-state-success.png
+    100-frontend-events-clean-state-success.png
+    101-lovable-event-archive-implementation-summary.png
+    102-lovable-event-archive-files-and-build-success.png
+    103-frontend-active-events-before-archive.png
+    104-frontend-active-events-after-archive.png
+    105-frontend-archived-events-success.png
+    106-frontend-event-restore-success.png
+    107-supabase-event-restore-success.png
+    108-lovable-events-summary-archive-filter-analysis.png
+    109-lovable-events-summary-generated-code-review.png
+    110-supabase-events-summary-archive-filter-ready.png
+    111-supabase-events-summary-archive-filter-deployed.png
+    112-dashboard-archive-filter-validation.png
+    113-supabase-weather-status-raw-values-diagnostic.png
+    114-events-summary-response-diagnostic.png
+    115-lovable-dashboard-risk-summary-fix.png
+    116-dashboard-risk-summary-correct.png
+    117-dashboard-after-event-archive.png
+    118-dashboard-after-event-restore.png
+
+---
+
+## 42. Fluxo funcional completo
+
+    1. Usuário cria uma conta
+    2. Confirma o e-mail
+    3. Realiza login
+    4. Cadastra evento
+    5. validate-event verifica os dados
+    6. Evento é salvo no Supabase
+    7. Webhook inicia o processamento no Make
+    8. Nominatim localiza a cidade
+    9. Open-Meteo fornece a previsão
+    10. Make identifica o horário do evento
+    11. Variáveis meteorológicas são extraídas
+    12. Sistema calcula o risco
+    13. Recomendação é gerada
+    14. Registro é criado no Airtable
+    15. Supabase é atualizado
+    16. Se necessário, Gmail envia alerta
+    17. Frontend apresenta o resultado
+    18. events-summary recalcula o Dashboard
+    19. Eventos passados podem ser arquivados
+    20. Eventos arquivados deixam de afetar o Dashboard
+    21. Eventos arquivados podem ser restaurados
+    22. O Dashboard passa a considerá-los novamente
+
+---
+
+## 43. Estado atual do projeto
+
+Atualmente estão funcionais:
+
+- autenticação;
+- criação de conta;
 - confirmação de e-mail;
-- Supabase Auth;
-- tabela `profiles`;
-- tabela `events`;
-- políticas RLS;
-- Supabase Edge Functions;
-- execução das APIs REST próprias;
-- inclusão do `event_id` no webhook;
-- atualização do Supabase através do Make;
-- evento atualizado com dados meteorológicos;
-- execução completa do cenário;
-- alerta enviado após a integração com o Supabase;
-- criação real de evento pelo frontend;
-- estado de processamento;
-- exibição de dados reais;
-- Dashboard real;
-- correção de binding do card Atenção;
-- tela de detalhes;
-- tela de configurações final;
-- correção da recomendação;
-- teste da API com timezone dinâmico;
-- teste do frontend no timezone do Japão;
-- correção do fallback de próximo evento;
-- teste do frontend simulando timezone do Brasil.
+- login;
+- logout;
+- proteção de rotas;
+- cadastro de evento;
+- validação através de API REST própria;
+- persistência no Supabase;
+- integração frontend → Make;
+- geocodificação;
+- consulta de previsão meteorológica;
+- análise por data e horário;
+- cálculo de risco;
+- recomendação;
+- integração com Airtable;
+- atualização do Supabase;
+- envio de alerta por Gmail;
+- listagem de eventos;
+- Dashboard;
+- indicadores por nível de risco;
+- Edge Function de resumo;
+- timezone dinâmico;
+- arquivamento de eventos;
+- restauração de eventos;
+- exclusão de eventos de teste redundantes;
+- validação dos cenários Normal, Atenção e Crítico;
+- duas APIs REST próprias integradas ao produto.
 
 ---
 
-## Fluxo Ponta a Ponta Validado
+## 44. Próximas evoluções
 
-O fluxo atual foi validado diretamente pelo frontend:
+Entre as evoluções possíveis estão:
 
-```text
-Usuário
-↓
-Lovable
-↓
-validate-event
-↓
-Supabase events
-↓
-processing_status = pending
-↓
-event_id
-↓
-Make
-↓
-Nominatim
-↓
-Open-Meteo
-↓
-Tratamento de dados
-↓
-Classificação de risco
-↓
-Recomendação
-↓
-Airtable
-↓
-PATCH no Supabase
-↓
-processing_status = processed
-↓
-Filtro de alerta
-↓
-Gmail
-↓
-Lovable exibe resultado atualizado
-```
+- arquivamento automático após determinado período;
+- filtros por período;
+- busca por cidade;
+- histórico climático;
+- configurações personalizadas de limiares;
+- notificações adicionais;
+- relatórios;
+- gráficos;
+- reprocessamento de previsões;
+- atualização automática da previsão próxima ao evento;
+- painel administrativo;
+- exportação de relatórios.
 
-Durante o teste, um evento criado diretamente pela interface foi:
-
-- validado pela API própria;
-- inserido no Supabase;
-- enviado ao Make;
-- geocodificado;
-- processado com dados da Open-Meteo;
-- classificado;
-- registrado no Airtable;
-- atualizado no Supabase;
-- exibido na tela Meus Eventos;
-- exibido na tela Detalhes do Evento;
-- contabilizado no Dashboard;
-- utilizado pela API `events-summary`;
-- enviado por e-mail quando o risco exigiu alerta.
+Esses itens são considerados evoluções futuras e não são necessários para o funcionamento principal da versão acadêmica atual.
 
 ---
 
-## Fluxo Temporal Validado
+## 45. Conclusão
 
-O fluxo de timezone também foi validado de ponta a ponta:
+O ClimaSeguro demonstra uma aplicação prática de integração de APIs, automação digital, no-code, low-code e desenvolvimento personalizado.
 
-```text
-Navegador
-↓
-Intl.DateTimeFormat().resolvedOptions().timeZone
-↓
-Lovable
-↓
-timezone na query string
-↓
-events-summary
-↓
-data e horário locais
-↓
-future_events
-↓
-next_event
-↓
-Dashboard
-```
+O projeto combina diferentes serviços para resolver um problema real: apoiar instituições educacionais na avaliação de riscos climáticos relacionados à realização de eventos.
 
-Esse fluxo foi testado com:
+A solução evoluiu de uma consulta meteorológica simples para um sistema integrado capaz de:
 
-```text
-Asia/Tokyo
-America/Sao_Paulo
-```
+- autenticar usuários;
+- registrar eventos;
+- validar dados;
+- localizar cidades;
+- consultar APIs externas;
+- interpretar dados horários;
+- classificar riscos;
+- gerar recomendações;
+- persistir informações;
+- enviar alertas;
+- apresentar indicadores;
+- disponibilizar APIs próprias;
+- considerar timezone do usuário;
+- preservar histórico através de arquivamento lógico.
 
-e apresentou resultados diferentes e corretos de acordo com a localização simulada do usuário.
+Os testes realizados com diferentes cidades permitiram validar os três cenários principais da solução:
 
----
+    Normal
+    Atenção
+    Crítico
 
-## Testes e Ajustes Identificados
+O arquivamento lógico tornou a aplicação mais coerente com um sistema real, permitindo preservar dados históricos sem comprometer a visualização operacional.
 
-Durante os testes de integração foram encontrados e corrigidos problemas reais de integração.
-
-### Binding do card Atenção
-
-Problema:
-
-```text
-Dashboard mostrava Atenção = 00
-```
-
-Mesmo com dois eventos classificados como Atenção.
-
-Diagnóstico:
-
-```text
-API retornava risk_summary.attention = 2
-```
-
-Causa:
-
-```text
-frontend buscava valor no nível raiz
-```
-
-Correção:
-
-```text
-summary.risk_summary.attention
-```
-
-### Eventos futuros
-
-Problema inicial:
-
-```text
-evento já ocorrido no mesmo dia ainda aparecia como próximo evento
-```
-
-Causa:
-
-```text
-comparação considerava apenas a data
-```
-
-Correção:
-
-```text
-data + horário
-```
-
-### Timezone fixo
-
-Problema:
-
-```text
-Asia/Tokyo estava definido diretamente na Edge Function
-```
-
-Impacto:
-
-Um professor acessando o sistema no Brasil poderia receber uma contagem incorreta de eventos futuros.
-
-Correção:
-
-```text
-timezone dinâmico recebido pela query string
-+
-validação do identificador IANA
-+
-fallback para UTC
-```
-
-### Timezone não integrado ao frontend
-
-Problema:
-
-A API já aceitava timezone dinâmico, mas o frontend ainda precisava enviar automaticamente o timezone do usuário.
-
-Correção:
-
-```text
-Intl.DateTimeFormat().resolvedOptions().timeZone
-↓
-encodeURIComponent
-↓
-events-summary?timezone=...
-```
-
-### Fallback incorreto no próximo evento
-
-Problema:
-
-Quando `next_event` era `null`, o frontend exibia o primeiro evento da lista.
-
-Correção:
-
-```text
-next_event = null
-→ Nenhum evento futuro
-```
-
-### Recomendação com aspas duplicadas
-
-Problema:
-
-```text
-recomendação aparecia com aspas extras
-```
-
-Causa:
-
-```text
-JSX adicionava aspas ao texto que já possuía aspas
-```
-
-Correção:
-
-```text
-renderização direta de recommendation
-```
-
-### Configurações sem persistência
-
-Problema:
-
-```text
-botão Salvar preferências não possuía efeito real
-```
-
-Correção:
-
-```text
-remoção do botão
-+
-campos transformados em informação somente leitura
-```
-
-Esses ajustes foram mantidos no projeto porque representam melhorias de consistência, confiabilidade e alinhamento entre interface e backend.
+O projeto também demonstrou um processo incremental de desenvolvimento, com testes, identificação de inconsistências, correções e validação técnica das soluções implementadas.
 
 ---
 
-## Próximos Passos
+## Autor
 
-- Validar o fluxo com evento classificado como `Normal`
-- Validar o comportamento do filtro de alerta para evento `Normal`
-- Validar o fluxo com evento classificado como `Crítico`
-- Validar o envio de alerta para evento `Crítico`
-- Revisar documentação final
-- Organizar evidências finais
-- Preparar roteiro de apresentação
-- Preparar vídeo acadêmico
-- Realizar revisão final antes da entrega
+Projeto desenvolvido para fins acadêmicos na **UniFECAF**.
 
----
+Área:
 
-## Status Atual
+**Inteligência Artificial e Automação Digital**
 
-🚧 Em fase final de validação
+Projeto:
 
-Atualmente o projeto possui:
-
-```text
-Frontend real
-+
-Autenticação
-+
-Banco de dados
-+
-Segurança RLS
-+
-Automação Make
-+
-APIs externas
-+
-APIs REST próprias
-+
-Geocodificação
-+
-Previsão climática
-+
-Classificação de risco
-+
-Recomendações
-+
-Airtable
-+
-Atualização automática do Supabase
-+
-Dashboard real
-+
-Meus Eventos real
-+
-Detalhes do Evento real
-+
-Alertas por e-mail
-+
-Timezone dinâmico na API
-+
-Timezone automático no frontend
-+
-Validação Japão/Brasil
-+
-Fluxo ponta a ponta validado
-```
-
-O ClimaSeguro já possui um fluxo funcional completo entre frontend, APIs, banco de dados, automação e serviços externos.
-
-A etapa atual é concluir os testes dos cenários climáticos restantes, revisar as evidências e preparar a documentação e apresentação acadêmica.
+**ClimaSeguro — Monitoramento Inteligente de Risco Climático para Eventos Educacionais**
